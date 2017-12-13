@@ -34,8 +34,14 @@ def Train(cf, sess, sb, saver):
     # More summary information to add
     #tf.summary.scalar("Mean_loss", train_mLoss)
     #img_conf_mat = tf.placeholder(tf.uint8, shape=[None, 480, 640, 3], name="conf_mat")
-    tf.summary.scalar("Mean_IoU", train_stats.mean_IoU)
-    tf.summary.scalar("Mean_Acc", train_stats.accuracy_class)
+    sb.tensorBoard.set_up() #merge all the previous summaries
+    tf.summary.scalar("Mean_IoU/train", train_stats.mean_IoU, collections=['train'])
+    tf.summary.scalar("Mean_Acc/train", train_stats.accuracy_class, collections=['train'])
+    tf.summary.scalar("Mean_IoU/validation", valid_stats.mean_IoU, collections=['validation'])
+    tf.summary.scalar("Mean_Acc/validation", valid_stats.accuracy_class, collections=['validation'])
+
+    train_writer = sb.tensorBoard.save(cf.exp_folder + cf.log_path + 'train/', sess)
+    val_writer = sb.tensorBoard.save(cf.exp_folder + cf.log_path + 'validation/', sess)
 
     # Early stopping
     if cf.early_stopping:
@@ -70,9 +76,9 @@ def Train(cf, sess, sb, saver):
         conf_mat = conf_mat/train_set.num_batches
         img_conf_mat = confm_metrics2image(conf_mat)
         img_conf_mat = tf.expand_dims(img_conf_mat, 0)
-        tf.summary.image("conf_mat", img_conf_mat, max_outputs=2)
+        tf.summary.image("conf_mat/train", img_conf_mat, max_outputs=2, collections=['train'])
         train_mLoss = np.mean(np.asarray(loss_per_batch))
-        summary_op_train = sb.tensorBoard.set_up()
+        summary_op_train = sb.tensorBoard.set_up('train')
         mIoU_train, mAcc_train, summary_train = sess.run([train_stats.mean_IoU, 
                                                 train_stats.accuracy_class, summary_op_train], feed_dict)
         train_set.Reset_Offset()
@@ -95,15 +101,17 @@ def Train(cf, sess, sb, saver):
             conf_mat = conf_mat/train_set.num_batches
             img_conf_mat = confm_metrics2image(conf_mat)
             img_conf_mat = tf.expand_dims(img_conf_mat, 0)
-            summary_conf_mat_val = tf.summary.image("conf_mat_validation", img_conf_mat, max_outputs=2)
+            tf.summary.image("conf_mat/validation", 
+                                        img_conf_mat, max_outputs=2, collections=['validation'])
+            summary_op_val = sb.tensorBoard.set_up('validation')
             mIoU_valid, mAcc_valid, sammary_val = sess.run([valid_stats.mean_IoU, valid_stats.accuracy_class, 
-                                    summary_conf_mat_val])
+                                    summary_op_val])
             valid_mLoss = np.mean(np.asarray(valid_loss_batch))
             valid_set.Reset_Offset()
 
         # Screen display
-        sb.tensorBoard.summary_writer.add_summary(summary_train, epoch)
-        sb.tensorBoard.summary_writer.add_summary(sammary_val, epoch)
+        train_writer.add_summary(summary_train, epoch)
+        val_writer.add_summary(sammary_val, epoch)
         epoch_time = time.time() - epoch_time
         print("Epoch: %d, Time: %ds \n\t Train_loss: %g, mIoU: %g, mAcc: %g" % (epoch, epoch_time,
                                 train_mLoss, mIoU_train, mAcc_train))
@@ -197,9 +205,8 @@ def main():
     # TensorFlow session
     print ('Starting session ...')
     sess = tf.Session()
-    saver = Model_IO()
-    #Saver Log for TesnorBoard
-    sb.tensorBoard.save(cf.exp_folder + cf.log_path, sess)    
+    saver = Model_IO() 
+
     sess.run(tf.global_variables_initializer())
     sess.run(tf.local_variables_initializer())
 

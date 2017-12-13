@@ -157,13 +157,16 @@ class TB_Builder():
         tf.summary.image("input_image", model.simb_image, max_outputs=2)
         tf.summary.image("ground_truth", tf.cast(model.simb_gt, tf.uint8), max_outputs=2)
         tf.summary.image("pred_annotation", tf.cast(model.annotation_pred, tf.uint8), max_outputs=2)
-        tf.summary.scalar("entropy", loss)
+        tf.summary.scalar("Loss", loss)
         
-    def set_up(self):
-        return tf.summary.merge_all()
+    def set_up(self, key=None):
+        if key is not None:
+            return tf.summary.merge_all(key=key)
+        else:    
+            return tf.summary.merge_all()
 
     def save(self, path, sess):
-        self.summary_writer = tf.summary.FileWriter(path, sess.graph)
+        return tf.summary.FileWriter(path, sess.graph)
 
 class Early_Stopping():
     def __init__(self, patience):
