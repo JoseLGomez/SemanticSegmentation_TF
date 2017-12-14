@@ -19,10 +19,10 @@ test_samples				= 5
 train_batch_size            = 1
 valid_batch_size            = 1
 test_batch_size             = 1
-train                       = False
-validation                  = False
+train                       = True
+validation                  = True
 test                        = True
-predict_test				= True	# True when you want only predictions without GT on test
+predict_test				= False	# True when you want only predictions without GT on test
 predict_output				= None # None uses the default output in the experiment folder /predictions
 
 # Image properties
@@ -49,7 +49,7 @@ shuffle                     = True
 void_class                  = 10
 
 #Training
-epochs                      = 2
+epochs                      = 3
 valid_samples_epoch			= 5
 is_training                 = True
 optimizer                   = 'adam'

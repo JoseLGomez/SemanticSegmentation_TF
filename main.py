@@ -1,10 +1,10 @@
 import tensorflow as tf
 import os
 import time
-from models.model_builder import Model_builder
+from models.model_builder import Model_builder, Model_IO
 from config.configuration import Configuration
 from utils.symbol_builder import Symbol_Builder, Statistics
-from utils.utils import Model_IO, TB_Builder, Early_Stopping, confm_metrics2image, save_prediction
+from utils.utils import TB_Builder, Early_Stopping, confm_metrics2image, save_prediction
 from utils.data_loader import Data_loader, Preprocess_IO 
 from metrics.loss import LossHandler
 from metrics.metrics import Compute_statistics
@@ -16,8 +16,6 @@ import skimage.io as io
 '''def Train(cf,sess, model,train_op,loss_fun,summary_op,summary_writer,
             saver,mean_IoU, update_IoU, running_vars_initializer):'''
 def Train(cf, sess, sb, saver):
-    #merge all the previous summaries
-    sb.tensorBoard.set_up() 
     #Path definitions
     train_image_path = os.path.join(cf.train_dataset_path, cf.train_folder_names[0])
     train_gt_path = os.path.join(cf.train_dataset_path, cf.train_folder_names[1])
@@ -40,11 +38,11 @@ def Train(cf, sess, sb, saver):
     #img_conf_mat = tf.placeholder(tf.uint8, shape=[None, 480, 640, 3], name="conf_mat")
     tf.summary.scalar("Mean_IoU/train", train_stats.mean_IoU, collections=['train'])
     tf.summary.scalar("Mean_Acc/train", train_stats.accuracy_class, collections=['train'])
-    tf.summary.scalar("Mean_IoU/validation", valid_stats.mean_IoU, collections=['validation'])
-    tf.summary.scalar("Mean_Acc/validation", valid_stats.accuracy_class, collections=['validation'])
+    tf.summary.scalar("Mean_IoU/train_valid", valid_stats.mean_IoU, collections=['train_valid'])
+    tf.summary.scalar("Mean_Acc/train_valid", valid_stats.accuracy_class, collections=['train_valid'])
 
     train_writer = sb.tensorBoard.save(cf.exp_folder + cf.log_path + 'train/', sess)
-    val_writer = sb.tensorBoard.save(cf.exp_folder + cf.log_path + 'validation/', sess)
+    val_writer = sb.tensorBoard.save(cf.exp_folder + cf.log_path + 'train_valid/', sess)
 
     # Early stopping
     if cf.early_stopping:
@@ -106,9 +104,9 @@ def Train(cf, sess, sb, saver):
             conf_mat = conf_mat/train_set.num_batches
             img_conf_mat = confm_metrics2image(conf_mat, cf.labels)
             img_conf_mat = tf.expand_dims(img_conf_mat, 0)
-            tf.summary.image("conf_mat/validation", 
-                                        img_conf_mat, max_outputs=2, collections=['validation'])
-            summary_op_val = sb.tensorBoard.set_up('validation')
+            tf.summary.image("conf_mat/train_valid", 
+                                        img_conf_mat, max_outputs=2, collections=['train_valid'])
+            summary_op_val = sb.tensorBoard.set_up('train_valid')
             mIoU_valid, mAcc_valid, sammary_val = sess.run([valid_stats.mean_IoU, 
                                                             valid_stats.accuracy_class, 
                                                             summary_op_val])
@@ -136,12 +134,6 @@ def Train(cf, sess, sb, saver):
 
 def Validation(cf, sess, sb):
     val_time = time.time()
-    #merge all the previous summaries
-    sb.tensorBoard.set_up() 
-    tf.summary.scalar("Mean_IoU/validation", valid_stats.mean_IoU, 
-                                                    collections=['validation'])
-    tf.summary.scalar("Mean_Acc/validation", valid_stats.accuracy_class, 
-                                                    collections=['validation'])
     val_writer = sb.tensorBoard.save(cf.exp_folder + cf.log_path + 'validation/', sess)
     valid_image_path = os.path.join(cf.valid_dataset_path, cf.valid_folder_names[0])
     valid_gt_path = os.path.join(cf.valid_dataset_path, cf.valid_folder_names[1])
@@ -149,6 +141,10 @@ def Validation(cf, sess, sb):
                                         cf.resize_image_valid, valid_gt_path)
     valid_set.Load_dataset(cf.valid_batch_size)
     valid_stats = Statistics(cf.valid_batch_size, sb)
+    tf.summary.scalar("Mean_IoU/validation", valid_stats.mean_IoU, 
+                                                    collections=['validation'])
+    tf.summary.scalar("Mean_Acc/validation", valid_stats.accuracy_class, 
+                                                    collections=['validation'])
     valid_loss_batch = np.zeros(valid_set.num_batches, dtype=np.float32)
     sess.run(valid_stats.running_vars_initializer)
     for i in range(valid_set.num_batches):
@@ -161,7 +157,7 @@ def Validation(cf, sess, sb):
         valid_loss_batch[i] = sess_return[0]
         pred = sess_return[1]
         conf_mat = sess_return[3]
-    conf_mat = conf_mat/train_set.num_batches
+    conf_mat = conf_mat/valid_set.num_batches
     img_conf_mat = confm_metrics2image(conf_mat, cf.labels)
     img_conf_mat = tf.expand_dims(img_conf_mat, 0)
     tf.summary.image("conf_mat/validation", 
@@ -172,18 +168,21 @@ def Validation(cf, sess, sb):
     val_time = time.time() - val_time
     print("\t Loss: %g, mIoU: %g, mAcc: %g, Time: %ds" % (np.mean(np.asarray(valid_loss_batch)),
                                                     mIoU_valid, mAcc_valid, val_time))
-    val_writer.add_summary(sammary_val, epoch)
+    val_writer.add_summary(sammary_val)
 
 def Test(cf, sess, sb):
     test_time = time.time()
-    #merge all the previous summaries
-    sb.tensorBoard.set_up() 
+    test_writer = sb.tensorBoard.save(cf.exp_folder + cf.log_path + 'test/', sess) 
     test_image_path = os.path.join(cf.test_dataset_path, cf.test_folder_names[0])
     test_gt_path = os.path.join(cf.test_dataset_path, cf.test_folder_names[1])
     test_set = Data_loader(cf, test_image_path, cf.test_samples, 
                                     cf.resize_image_test, test_gt_path)
     test_set.Load_dataset(cf.test_batch_size)
     test_stats = Statistics(cf.test_batch_size, sb)
+    tf.summary.scalar("Mean_IoU/test", test_stats.mean_IoU, 
+                                                    collections=['test'])
+    tf.summary.scalar("Mean_Acc/test", test_stats.accuracy_class, 
+                                                    collections=['test'])
     test_loss_batch = np.zeros(test_set.num_batches, dtype=np.float32)
     sess.run(test_stats.running_vars_initializer)
     for i in range(test_set.num_batches):
@@ -196,10 +195,17 @@ def Test(cf, sess, sb):
         test_loss_batch[i] = sess_return[0]
         pred = sess_return[1]
         conf_mat = sess_return[3]
-    mIoU_test, mAcc_test = sess.run([test_stats.mean_IoU, test_stats.accuracy_class])
+    conf_mat = conf_mat/test_set.num_batches
+    img_conf_mat = confm_metrics2image(conf_mat, cf.labels)
+    img_conf_mat = tf.expand_dims(img_conf_mat, 0)
+    tf.summary.image("conf_mat/test", 
+                                img_conf_mat, max_outputs=2, collections=['test'])
+    summary_op_test = sb.tensorBoard.set_up('test')
+    mIoU_test, mAcc_test, sammary_test = sess.run([test_stats.mean_IoU, test_stats.accuracy_class, summary_op_test])
     test_time = time.time() - test_time
-    print("\t test_loss: %g, mIoU: %g, mAcc: %g" % (np.mean(np.asarray(test_loss_batch)),
-                                                    mIoU_test, mAcc_test))
+    print("\t test_loss: %g, mIoU: %g, mAcc: %g, Time: %ds" % (np.mean(np.asarray(test_loss_batch)),
+                                                    mIoU_test, mAcc_test, test_time))
+    test_writer.add_summary(sammary_test)
 
 def Predict(cf, sess, sb):
     predict_time = time.time()
@@ -216,7 +222,16 @@ def Predict(cf, sess, sb):
     predict_time = time.time() - predict_time
     print("\t Time: %ds" % (predict_time))
 
-
+def restore_session(cf, sess):
+    saver = Model_IO()
+    # Restore session
+    if cf.load_model == 'tensorflow':
+        print ('Loading model ...')
+        saver.Load_model(cf, sess)
+    elif cf.load_model == 'keras':
+        print ('Loading weights ...')
+        saver.Manual_weight_load(cf, sess)
+    return saver
 
 def main():
     start_time = time.time()
@@ -246,40 +261,37 @@ def main():
     config = Configuration(args.config_file, args.exp_name, args.exp_folder)
     cf = config.Load()
     
-    #Create symbol builder with all the parameters needed (model, loss, optimizers,...)
-    if cf.train:
-        train_sb = Symbol_Builder(cf, cf.size_image_train)
-    if cf.validation:
-        valid_sb = Symbol_Builder(cf, cf.size_image_valid)
-    if cf.test:
-        test_sb = Symbol_Builder(cf, cf.size_image_test)    
-
-    # TensorFlow session
-    print ('Starting session ...')
     sess = tf.Session()
-    saver = Model_IO() 
-
     sess.run(tf.global_variables_initializer())
     sess.run(tf.local_variables_initializer())
-
-    # Restore session
-    if cf.load_model == 'tensorflow':
-        print ('Loading model ...')
-        saver.Load_model(cf, sess)
-    elif cf.load_model == 'keras':
-        print ('Loading weights ...')
-        saver.Manual_weight_load(cf, sess)
     # training step
     if cf.train:
+        #Create symbol builder with all the parameters needed (model, loss, optimizers,...)
+        sb = Symbol_Builder(cf, cf.size_image_train)
+        saver = restore_session(cf, sess)
+        #merge all the previous summaries
+        sb.tensorBoard.set_up() 
         print ('Starting training ...')
-        Train(cf, sess, train_sb, saver)
+        Train(cf, sess, sb, saver)
+    # Validation step
     if cf.validation:
+        if not cf.train:
+            sb = Symbol_Builder(cf, cf.size_image_valid)
+            saver = restore_session(cf, sess)
+            #merge all the previous summaries
+            sb.tensorBoard.set_up() 
         print ('Starting validation ...')
-        Validation(cf, sess, valid_sb)
+        Validation(cf, sess, sb)
+    # Test step
     if cf.test:
+        if not cf.train and not cf.validation:
+            sb = Symbol_Builder(cf, cf.size_image_test)
+            saver = restore_session(cf, sess)
+            #merge all the previous summaries
+            sb.tensorBoard.set_up() 
         print ('Starting testing ...')
         if cf.predict_test:
-            Predict(cf, sess, test_sb)
+            Predict(cf, sess, sb)
         else:
             Test(cf, sess, sb)
     total_time = time.time() - start_time    
