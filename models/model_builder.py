@@ -5,11 +5,11 @@ import os
 from denseNetTensorFlow import DenseNetFCN
 
 class Model_builder():
-    def __init__(self, cf):
-        self.simb_image = tf.placeholder(tf.float32, shape=[None, cf.resize_image[0], 
-                                cf.resize_image[1], cf.image_channels], name="input_image")
-        self.simb_gt = tf.placeholder(tf.int32, shape=[None, cf.resize_image[0], 
-                                cf.resize_image[1], 1], name="gt_image")
+    def __init__(self, cf, size):
+        self.simb_image = tf.placeholder(tf.float32, shape=[None, size[0], 
+                                size[1], cf.image_channels], name="input_image")
+        self.simb_gt = tf.placeholder(tf.int32, shape=[None, size[0], 
+                                size[1], 1], name="gt_image")
         self.simb_is_training = tf.placeholder(tf.bool, name="is_training")
         self.cf = cf
         self.logits = None

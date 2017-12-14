@@ -49,7 +49,7 @@ def has_valid_extension(fname, white_list_formats={'png', 'jpg', 'jpeg',
     return False
 
 class Data_loader():
-    def __init__(self, cf, image_path, gt_path, num_images):
+    def __init__(self, cf, image_path, num_images, resize, gt_path=None):
         self.cf = cf
         self.images = []
         self.offset = 0
@@ -57,6 +57,7 @@ class Data_loader():
         self.gt_path = gt_path
         self.num_images = num_images
         self.num_batches = None
+        self.resize = resize
     
     def Load_dataset(self, batch_size):
         _ , self.images = Get_filenames(self.img_path)
@@ -73,20 +74,20 @@ class Data_loader():
         
     def Next_batch(self, batch_size):
         if batch_size > 1:
-            batch_x = np.zeros((batch_size,self.cf.resize_image[0],self.cf.resize_image[1],
+            batch_x = np.zeros((batch_size,self.resize[0],self.resize[1],
                                 self.cf.image_channels))
-            batch_y = np.zeros((batch_size,self.cf.resize_image[0],self.cf.resize_image[1],1))
+            batch_y = np.zeros((batch_size,self.resize[0],self.resize[1],1))
         # Build batch of image data
         for i in range(batch_size):
             # Load image
             fname = self.images[self.indexes[self.offset + i]]
-            img = Load_image(os.path.join(self.img_path, fname), self.cf.resize_image, 
+            img = Load_image(os.path.join(self.img_path, fname), self.resize, 
                                 self.cf.grayscale, order=1)
             x = np.array(img)
             x = Preprocess_IO().Preproces_input(x, self.cf)
             #assert not np.any(np.isnan(x))
             # Load GT image
-            gt_img = Load_image(os.path.join(self.gt_path, fname), self.cf.resize_image, 
+            gt_img = Load_image(os.path.join(self.gt_path, fname), self.resize, 
                                 grayscale=True, order=0)
             y = np.array(gt_img)
             y = np.expand_dims(y, axis=2)
@@ -99,6 +100,28 @@ class Data_loader():
                 batch_y = np.expand_dims(y, axis=0)
         self.offset += batch_size
         return batch_x, batch_y
+
+    def Next_batch_pred(self, batch_size):
+        batch_names = []
+        if batch_size > 1:
+            batch_x = np.zeros((batch_size,self.resize[0],self.resize[1],
+                                self.cf.image_channels))
+        # Build batch of image data
+        for i in range(batch_size):
+            # Load image
+            fname = self.images[self.indexes[self.offset + i]]
+            img = Load_image(os.path.join(self.img_path, fname), self.resize, 
+                                self.cf.grayscale, order=1)
+            x = np.array(img)
+            x = Preprocess_IO().Preproces_input(x, self.cf)
+
+            if batch_size > 1:
+                batch_x[i] = x
+            else:
+                batch_x = np.expand_dims(x, axis=0)
+            batch_names.append(fname) 
+        self.offset += batch_size
+        return batch_x, batch_names
 
     def Reset_Offset(self):
         self.offset = 0

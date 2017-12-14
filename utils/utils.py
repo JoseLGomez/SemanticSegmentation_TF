@@ -61,6 +61,11 @@ def confm_metrics2image(conf_matrix,names=None):
 
     return img
 
+def save_prediction(output_path, predictions, names):
+    for img in range(len(names)):
+        output_file = output_path + names[img]
+        cv.imwrite(output_file, np.squeeze(predictions[img], axis=2))
+
 class Model_IO():
     def __init__(self):
         self.train_mLoss = float('inf')

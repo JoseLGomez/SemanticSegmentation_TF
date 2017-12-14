@@ -1,5 +1,3 @@
-# Paths
-
 # Model
 model_type                  = 'DenseNetFCN'
 model_blocks                = 5               # Number of block densenetFCN_Custom only
@@ -21,13 +19,19 @@ test_samples				= 5
 train_batch_size            = 1
 valid_batch_size            = 1
 test_batch_size             = 1
-train                       = True
-validation                  = True
+train                       = False
+validation                  = False
 test                        = True
-test_with_gt				= True
+predict_test				= True	# True when you want only predictions without GT on test
+predict_output				= None # None uses the default output in the experiment folder /predictions
 
 # Image properties
-resize_image                = (480,640)
+size_image_train			= (960, 1280)
+size_image_valid			= (960, 1280)
+size_image_test				= (960, 1280)
+resize_image_train          = (480,640)
+resize_image_valid          = (480,640)
+resize_image_test           = None
 image_channels              = 3
 grayscale                   = False
 
@@ -38,6 +42,8 @@ test_dataset_path			= '/home/jlgomez/Datasets/Audi_10classes/test/'
 train_folder_names          = ['images/','masks/']
 valid_folder_names			= ['images/','masks/']
 test_folder_names			= ['images/','masks/']
+labels						= ['person', 'car', 'truck', 'drivable', 'nondrivable', 'blocker', 
+															'info', 'sky', 'buildings', 'nature'] 
 num_classes                 = 10
 shuffle                     = True
 void_class                  = 10
