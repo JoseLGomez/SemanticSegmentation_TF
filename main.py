@@ -223,6 +223,8 @@ def Predict(cf, sess, sb):
     print("\t Time: %ds" % (predict_time))
 
 def restore_session(cf, sess):
+    sess.run(tf.global_variables_initializer())
+    sess.run(tf.local_variables_initializer())
     saver = Model_IO()
     # Restore session
     if cf.pretrained_model:
@@ -263,8 +265,6 @@ def main():
     cf = config.Load()
     
     sess = tf.Session()
-    sess.run(tf.global_variables_initializer())
-    sess.run(tf.local_variables_initializer())
     # training step
     if cf.train:
         #Create symbol builder with all the parameters needed (model, loss, optimizers,...)
