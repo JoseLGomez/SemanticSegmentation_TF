@@ -74,9 +74,14 @@ class Data_loader():
         
     def Next_batch(self, batch_size, crop=False):
         if batch_size > 1:
-            batch_x = np.zeros((batch_size,self.resize[0],self.resize[1],
-                                self.cf.image_channels))
-            batch_y = np.zeros((batch_size,self.resize[0],self.resize[1],1))
+            if crop:
+                batch_x = np.zeros((batch_size,self.cf.crop_train[0],self.cf.crop_train[1],
+                                    self.cf.image_channels))
+                batch_y = np.zeros((batch_size,self.cf.crop_train[0],self.cf.crop_train[1],1))
+            else:
+                batch_x = np.zeros((batch_size,self.resize[0],self.resize[1],
+                                    self.cf.image_channels))
+                batch_y = np.zeros((batch_size,self.resize[0],self.resize[1],1))
         # Build batch of image data
         for i in range(batch_size):
             # Load image
