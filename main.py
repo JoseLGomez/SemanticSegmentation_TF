@@ -64,7 +64,7 @@ def Train(cf, sess, sb, saver):
         sess.run(train_stats.running_vars_initializer)
         #Dataset batch loop
         for i in range(train_set.num_batches):
-            batch_x, batch_y = train_set.Next_batch(cf.train_batch_size)
+            batch_x, batch_y = train_set.Next_batch(cf.train_batch_size, crop=True)
             feed_dict = {sb.model.simb_image: batch_x, sb.model.simb_gt: batch_y, 
                                 sb.model.simb_is_training: True}
             simbol_list = [sb.train_op, sb.loss_fun, sb.model.annotation_pred, 
@@ -225,12 +225,13 @@ def Predict(cf, sess, sb):
 def restore_session(cf, sess):
     saver = Model_IO()
     # Restore session
-    if cf.load_model == 'tensorflow':
-        print ('Loading model ...')
-        saver.Load_model(cf, sess)
-    elif cf.load_model == 'keras':
-        print ('Loading weights ...')
-        saver.Manual_weight_load(cf, sess)
+    if cf.pretrained_model:
+        if cf.load_model == 'tensorflow':
+            print ('Loading model ...')
+            saver.Load_model(cf, sess)
+        elif cf.load_model == 'keras':
+            print ('Loading weights ...')
+            saver.Manual_weight_load(cf, sess)
     return saver
 
 def main():

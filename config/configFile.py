@@ -6,9 +6,10 @@ model_growth                = 12              # Growth rate per block (k) densen
 model_upsampling            = 'deconv'        # upsampling types available: 'upsampling' , 'subpixel', 'deconv'
 model_dropout               = 0.0             # Dropout rate densenetFCN_Custom only
 model_compression           = 0.0             # Compression rate for DenseNet densenetFCN_Custom only
+pretrained_model			= True			  # True to use a pretrained model or restore experiment
 load_model	                = 'tensorflow'    # Load model from 'tensorflow' or 'keras'
 model_name                  = 'DenseNetFCN'
-model_path                  = 'save/'
+model_path                  = None 			  # None uses experiment path by default if pretrained_model is True
 
 
 # General parameters
@@ -29,9 +30,10 @@ predict_output				= None # None uses the default output in the experiment folder
 size_image_train			= (960, 1280)
 size_image_valid			= (960, 1280)
 size_image_test				= (960, 1280)
-resize_image_train          = (480,640)
-resize_image_valid          = (480,640)
+resize_image_train          = (480, 640)
+resize_image_valid          = (480, 640)
 resize_image_test           = None
+crop_train					= (320, 320)
 image_channels              = 3
 grayscale                   = False
 

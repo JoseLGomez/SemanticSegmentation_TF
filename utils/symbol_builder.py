@@ -1,25 +1,25 @@
 import os
 import tensorflow as tf
 import numpy as np
-from utils import Model_IO, TB_Builder
+from utils import TB_Builder
 from data_loader import Data_loader, Preprocess_IO 
 from optimizer_builder import Optimizer_builder 
 from metrics.loss import LossHandler
 from metrics.metrics import Compute_statistics
-from models.model_builder import Model_builder
+from models.model_builder import Model_builder, Model_IO
 
 
 class Symbol_Builder():
 	def __init__(self, cf, size):
 		self.cf = cf
 		self.size = size
-		self.__build_model()
+		self.build_model()
 		self.trainable_var = tf.trainable_variables()
 		self.__build_loss()
 		self.__build_TB()
 		self.__build_optimizer()
 
-	def __build_model(self):
+	def build_model(self):
 		# Prepare model
 	    print ('Generating model ...')
 	    self.model = Model_builder(self.cf, self.size)

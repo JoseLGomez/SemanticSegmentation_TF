@@ -72,7 +72,7 @@ class Data_loader():
     def Shuffle(self):
         np.random.shuffle(self.indexes)
         
-    def Next_batch(self, batch_size):
+    def Next_batch(self, batch_size, crop=False):
         if batch_size > 1:
             batch_x = np.zeros((batch_size,self.resize[0],self.resize[1],
                                 self.cf.image_channels))
@@ -84,13 +84,15 @@ class Data_loader():
             img = Load_image(os.path.join(self.img_path, fname), self.resize, 
                                 self.cf.grayscale, order=1)
             x = np.array(img)
-            x = Preprocess_IO().Preproces_input(x, self.cf)
             #assert not np.any(np.isnan(x))
             # Load GT image
             gt_img = Load_image(os.path.join(self.gt_path, fname), self.resize, 
                                 grayscale=True, order=0)
             y = np.array(gt_img)
             y = np.expand_dims(y, axis=2)
+            if crop:
+                x, y = Preprocess_IO().ApplyCrop(x, y, self.cf)  
+            x = Preprocess_IO().Preproces_input(x, self.cf)  
             #assert not np.any(np.isnan(y))
             if batch_size > 1:
                 batch_x[i] = x
@@ -149,3 +151,13 @@ class Preprocess_IO():
             cf.std = np.asarray(cf.std, dtype=np.float32)
             image = self.Std_norm(image, cf.std)
         return image
+
+    def ApplyCrop(self, x, y, cf):
+        if cf.crop_train[0] < cf.size_image_train[0]:
+            top = np.random.randint(cf.size_image_train[0] - cf.crop_train[0])
+        if cf.crop_train[1] < cf.size_image_train[1]:
+            left = np.random.randint(cf.size_image_train[1] - cf.crop_train[1])
+
+        x = x[..., top:top+cf.crop_train[0], left:left+cf.crop_train[1], :]
+        y = y[..., top:top+cf.crop_train[0], left:left+cf.crop_train[1], :]
+        return x, y
