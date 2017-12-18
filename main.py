@@ -9,6 +9,7 @@ from utils.data_loader import Data_loader, Preprocess_IO
 from metrics.loss import LossHandler
 from metrics.metrics import Compute_statistics
 from utils.optimizer_builder import Optimizer_builder
+from utils.ProgressBar import ProgressBar
 import argparse
 import numpy as np
 import skimage.io as io 
@@ -62,6 +63,8 @@ def Train(cf, sess, sb, saver):
         conf_mat = np.zeros((cf.num_classes,cf.num_classes), dtype=np.float32)
         # initialize/reset the running variables
         sess.run(train_stats.running_vars_initializer)
+        #Progress bar
+        prog_bar = ProgressBar(train_set.num_batches)
         #Dataset batch loop
         for i in range(train_set.num_batches):
             batch_x, batch_y = train_set.Next_batch(cf.train_batch_size, crop=True)
@@ -74,6 +77,7 @@ def Train(cf, sess, sb, saver):
             loss_per_batch[i] = sess_return[1]
             #pred = sess_return[2]
             conf_mat += sess_return[5]
+            prog_bar.update()
         # Epoch train summary info
         conf_mat = conf_mat/train_set.num_batches
         img_conf_mat = confm_metrics2image(conf_mat, cf.labels)
@@ -147,6 +151,7 @@ def Validation(cf, sess, sb):
                                                     collections=['validation'])
     valid_loss_batch = np.zeros(valid_set.num_batches, dtype=np.float32)
     sess.run(valid_stats.running_vars_initializer)
+    prog_bar = ProgressBar(valid_set.num_batches)
     for i in range(valid_set.num_batches):
         batch_x, batch_y = valid_set.Next_batch(cf.valid_batch_size)
         feed_dict = {sb.model.simb_image: batch_x, sb.model.simb_gt: batch_y, 
@@ -157,6 +162,7 @@ def Validation(cf, sess, sb):
         valid_loss_batch[i] = sess_return[0]
         pred = sess_return[1]
         conf_mat = sess_return[3]
+        prog_bar.update()
     conf_mat = conf_mat/valid_set.num_batches
     img_conf_mat = confm_metrics2image(conf_mat, cf.labels)
     img_conf_mat = tf.expand_dims(img_conf_mat, 0)
@@ -185,6 +191,7 @@ def Test(cf, sess, sb):
                                                     collections=['test'])
     test_loss_batch = np.zeros(test_set.num_batches, dtype=np.float32)
     sess.run(test_stats.running_vars_initializer)
+    prog_bar = ProgressBar(test_set.num_batches)
     for i in range(test_set.num_batches):
         batch_x, batch_y = test_set.Next_batch(cf.test_batch_size)
         feed_dict = {sb.model.simb_image: batch_x, sb.model.simb_gt: batch_y, 
@@ -195,6 +202,7 @@ def Test(cf, sess, sb):
         test_loss_batch[i] = sess_return[0]
         pred = sess_return[1]
         conf_mat = sess_return[3]
+        prog_bar.update()
     conf_mat = conf_mat/test_set.num_batches
     img_conf_mat = confm_metrics2image(conf_mat, cf.labels)
     img_conf_mat = tf.expand_dims(img_conf_mat, 0)
@@ -212,6 +220,7 @@ def Predict(cf, sess, sb):
     test_image_path = os.path.join(cf.test_dataset_path, cf.test_folder_names[0])
     test_set = Data_loader(cf, test_image_path, cf.test_samples, cf.resize_image_test)
     test_set.Load_dataset(cf.test_batch_size)
+    prog_bar = ProgressBar(test_set.num_batches)
     for i in range(test_set.num_batches):
         batch_x, batch_names = test_set.Next_batch_pred(cf.test_batch_size)
         feed_dict = {sb.model.simb_image: batch_x, sb.model.simb_is_training: False}
@@ -219,6 +228,7 @@ def Predict(cf, sess, sb):
         sess_return = sess.run(simbol_list, feed_dict)
         pred = sess_return[0]
         save_prediction(cf.predict_output, pred, batch_names)
+        prog_bar.update()
     predict_time = time.time() - predict_time
     print("\t Time: %ds" % (predict_time))
 
