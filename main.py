@@ -24,11 +24,11 @@ def Train(cf, sess, sb, saver):
     trainable_var = tf.trainable_variables()
     # Training dataset set up
     train_set = Data_loader(cf, train_image_path, cf.train_samples, 
-                                        cf.resize_image_train, train_gt_path)
+                                        cf.size_image_train, train_gt_path)
     train_set.Load_dataset(cf.train_batch_size)
     # Validation dataset set up
     valid_set = Data_loader(cf, valid_image_path, cf.valid_samples_epoch, 
-                                        cf.resize_image_valid, valid_gt_path)
+                                        cf.size_image_valid, valid_gt_path)
     valid_set.Load_dataset(cf.valid_batch_size)
     # Simbol creation for metrics and statistics
     train_stats = Statistics(cf.train_batch_size, sb)
@@ -72,8 +72,8 @@ def Train(cf, sess, sb, saver):
                             train_stats.conf_matrix_batch]
             sess_return = sess.run(simbol_list, feed_dict)
             loss_per_batch[i] = sess_return[1]
-            pred = sess_return[2]
-            conf_mat += sess_return[4]
+            #pred = sess_return[2]
+            conf_mat += sess_return[5]
         # Epoch train summary info
         conf_mat = conf_mat/train_set.num_batches
         img_conf_mat = confm_metrics2image(conf_mat, cf.labels)
@@ -138,7 +138,7 @@ def Validation(cf, sess, sb):
     valid_image_path = os.path.join(cf.valid_dataset_path, cf.valid_folder_names[0])
     valid_gt_path = os.path.join(cf.valid_dataset_path, cf.valid_folder_names[1])
     valid_set = Data_loader(cf, valid_image_path, cf.valid_samples, 
-                                        cf.resize_image_valid, valid_gt_path)
+                                        cf.size_image_valid, valid_gt_path)
     valid_set.Load_dataset(cf.valid_batch_size)
     valid_stats = Statistics(cf.valid_batch_size, sb)
     tf.summary.scalar("Mean_IoU/validation", valid_stats.mean_IoU, 
@@ -176,7 +176,7 @@ def Test(cf, sess, sb):
     test_image_path = os.path.join(cf.test_dataset_path, cf.test_folder_names[0])
     test_gt_path = os.path.join(cf.test_dataset_path, cf.test_folder_names[1])
     test_set = Data_loader(cf, test_image_path, cf.test_samples, 
-                                    cf.resize_image_test, test_gt_path)
+                                    cf.size_image_test, test_gt_path)
     test_set.Load_dataset(cf.test_batch_size)
     test_stats = Statistics(cf.test_batch_size, sb)
     tf.summary.scalar("Mean_IoU/test", test_stats.mean_IoU, 
