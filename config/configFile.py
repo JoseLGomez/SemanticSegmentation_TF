@@ -6,10 +6,11 @@ model_growth                = 12              # Growth rate per block (k) densen
 model_upsampling            = 'deconv'        # upsampling types available: 'upsampling' , 'subpixel', 'deconv'
 model_dropout               = 0.0             # Dropout rate densenetFCN_Custom only
 model_compression           = 0.0             # Compression rate for DenseNet densenetFCN_Custom only
-pretrained_model			= False			  # True to use a pretrained model or restore experiment
-load_model	                = 'tensorflow'    # Load model from 'tensorflow' or 'keras'
-model_name                  = 'DenseNetFCN'
-model_path                  = None 			  # None uses experiment path by default if pretrained_model is True
+pretrained_model			= True			  # True to use a pretrained model or restore experiment
+load_model	                = 'keras'    # Load model from 'tensorflow' or 'keras'
+weight_only					= True
+model_name                  = 'densenetFCN_Custom'
+model_path                  = '/home/jlgomez/Repositories/TensorFlow/tensorflow_model' 			  # None uses experiment path by default if pretrained_model is True
 
 
 # General parameters
@@ -20,7 +21,7 @@ test_samples				= 5
 train_batch_size            = 1
 valid_batch_size            = 1
 test_batch_size             = 1
-train                       = True
+train                       = False
 validation                  = True
 test                        = True
 predict_test				= False	# True when you want only predictions without GT on test
@@ -32,7 +33,7 @@ size_image_valid			= (960, 1280)
 size_image_test				= (960, 1280)
 resize_image_train          = (480, 640)
 resize_image_valid          = (480, 640)
-resize_image_test           = None
+resize_image_test           = (480, 640)
 crop_train					= (320, 320)
 image_channels              = 3
 grayscale                   = False
@@ -63,8 +64,8 @@ patience					= 5
 
 # Image preprocess
 rescale                     = 1/255.
-mean                        = None #[0.37296272, 0.37296272, 0.37296272]
-std                         = None #[0.21090189, 0.21090189, 0.21090189]
+mean                        = [0.37296272, 0.37296272, 0.37296272]
+std                         = [0.21090189, 0.21090189, 0.21090189]
 
 # Metrics
 

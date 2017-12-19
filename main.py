@@ -232,7 +232,7 @@ def Predict(cf, sess, sb):
     predict_time = time.time() - predict_time
     print("\t Time: %ds" % (predict_time))
 
-def restore_session(cf, sess):
+def restore_session(cf, sess, sb):
     sess.run(tf.global_variables_initializer())
     sess.run(tf.local_variables_initializer())
     saver = Model_IO()
@@ -240,11 +240,17 @@ def restore_session(cf, sess):
     if cf.pretrained_model:
         if cf.load_model == 'tensorflow':
             print ('Loading model ...')
-            saver.Load_model(cf, sess)
+            if cf.weight_only:
+                saver.Load_weights(cf, sess)
+            else:
+                saver.Load_model(cf, sess)
         elif cf.load_model == 'keras':
             print ('Loading weights ...')
-            saver.Manual_weight_load(cf, sess)
-    return saver
+            if cf.weight_only:
+                saver.Manual_weight_load(cf, sess)
+            else:
+                sb.model.simb_image, sb.model.logits, _  = saver.Load_keras_model(cf, sess, sb)
+    return saver, sb
 
 def main():
     start_time = time.time()
@@ -279,7 +285,7 @@ def main():
     if cf.train:
         #Create symbol builder with all the parameters needed (model, loss, optimizers,...)
         sb = Symbol_Builder(cf, cf.size_image_train)
-        saver = restore_session(cf, sess)
+        saver, sb = restore_session(cf, sess, sb)
         #merge all the previous summaries
         sb.tensorBoard.set_up() 
         print ('Starting training ...')
@@ -288,7 +294,7 @@ def main():
     if cf.validation:
         if not cf.train:
             sb = Symbol_Builder(cf, cf.size_image_valid)
-            saver = restore_session(cf, sess)
+            saver, sb = restore_session(cf, sess, sb)
             #merge all the previous summaries
             sb.tensorBoard.set_up() 
         print ('Starting validation ...')
@@ -297,7 +303,7 @@ def main():
     if cf.test:
         if not cf.train and not cf.validation:
             sb = Symbol_Builder(cf, cf.size_image_test)
-            saver = restore_session(cf, sess)
+            saver, sb = restore_session(cf, sess, sb)
             #merge all the previous summaries
             sb.tensorBoard.set_up() 
         print ('Starting testing ...')

@@ -41,10 +41,10 @@ class Model_IO():
         self.mAcc_valid = 0
         self.saver = tf.train.Saver()
     
-    def Load_keras_model(self, cf, sess):
+    def Load_keras_model(self, cf, sess, sb):
         variables_to_restore = [var for var in tf.global_variables()]
         graph = sess.graph
-        restorer = tf.train.import_meta_graph(os.path.join(cf.model_path, cf.model_name)+'.meta')
+        restorer = tf.train.import_meta_graph(os.path.join(cf.model_path, cf.model_name)+'.ckpt.meta')
         restorer.restore(sess,os.path.join(cf.model_path, cf.model_name))
         #print ([n.name for n in tf.get_default_graph().as_graph_def().node])
         '''for n in tf.get_default_graph().as_graph_def().node:
@@ -66,7 +66,7 @@ class Model_IO():
     
     def Manual_weight_load(self, cf, sess):
         variables_to_read = [var for var in tf.global_variables() if 'Adam' not in var.name]
-        reader = pywrap_tensorflow.NewCheckpointReader(os.path.join(cf.model_path, cf.model_name))
+        reader = tf.pywrap_tensorflow.NewCheckpointReader(os.path.join(cf.model_path, cf.model_name)+'.ckpt')
         var_to_shape_map = reader.get_variable_to_shape_map()
         for var in var_to_shape_map:
             if cf.model_type == 'DenseNetFCN':
