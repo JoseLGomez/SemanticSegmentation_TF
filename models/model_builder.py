@@ -1,5 +1,6 @@
 import tensorflow as tf
 import os
+from tensorflow.python import pywrap_tensorflow
 
 
 from denseNetTensorFlow import DenseNetFCN
@@ -19,14 +20,30 @@ class Model_builder():
         self.logits = None
         self.annotation_pred = None
         
-    def Build(self):       
-        if self.cf.model_type == 'DenseNetFCN':
-            model = DenseNetFCN(self.simb_image, nb_dense_block=self.cf.model_blocks, 
+    def Build(self):
+        self.saver = Model_IO()
+        if self.cf.pretrained_model and not self.cf.weight_only:
+            if self.cf.load_model == 'tensorflow':
+                saver.Load_model(self.cf, sess)
+            elif self.cf.load_model == 'keras':
+                print ('Loading model from keras...')
+                self.simb_image, model, self.simb_is_training = self.saver.Load_keras_model(self.cf, sess, sb)
+        else:
+            if self.cf.model_type == 'DenseNetFCN':
+                model = DenseNetFCN(self.simb_image, nb_dense_block=self.cf.model_blocks, 
                                 growth_rate=self.cf.model_growth, nb_layers_per_block=self.cf.model_layers,
                                 upsampling_type=self.cf.model_upsampling,
                                 classes=self.cf.num_classes, is_training=self.simb_is_training)
-        else:
-            raise ValueError('Unknown model')
+            else:
+                raise ValueError('Unknown model')
+            if self.cf.pretrained_model and self.cf.weight_only:
+                print ('Loading weights ...')
+                if self.cf.load_model == 'tensorflow':
+                    saver.Load_weights(self.cf, sess)
+                elif self.cf.load_model == 'keras':
+                    print ('Loading weights from keras model...')
+                    saver.Manual_weight_load(self.cf, sess)                       
+        
         self.annotation_pred = tf.argmax(model, axis=3, name="prediction")
         self.annotation_pred = tf.expand_dims(self.annotation_pred, dim=3)
         self.logits = model
@@ -42,22 +59,28 @@ class Model_IO():
         self.saver = tf.train.Saver()
     
     def Load_keras_model(self, cf, sess, sb):
+        sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
+        restorer = tf.train.import_meta_graph(os.path.join(cf.model_path, cf.model_name)+'.meta')
+        restorer.restore(sess,tf.train.latest_checkpoint(cf.model_path))
+        graph = tf.get_default_graph()
+        input()
         variables_to_restore = [var for var in tf.global_variables()]
-        graph = sess.graph
-        restorer = tf.train.import_meta_graph(os.path.join(cf.model_path, cf.model_name)+'.ckpt.meta')
-        restorer.restore(sess,os.path.join(cf.model_path, cf.model_name))
-        #print ([n.name for n in tf.get_default_graph().as_graph_def().node])
-        '''for n in tf.get_default_graph().as_graph_def().node:
-            print (n.name)'''
+        variables_to_read = [var for var in tf.global_variables() if 'Adam' not in var.name]
+        reader = pywrap_tensorflow.NewCheckpointReader(os.path.join(cf.model_path, cf.model_name))
+        var_to_shape_map = reader.get_variable_to_shape_map()
+        restorer = tf.train.Saver(variables_to_restore)
+        for var in variables_to_read: 
+            print var.name
+  
         bn1 = graph.get_tensor_by_name("bn1_layer1_block_down1/keras_learning_phase:0")  
         simb_image = graph.get_tensor_by_name("input_1:0")
         model = graph.get_tensor_by_name("nd_softmax_1/transpose_1:0")
-        
         #model = tf.nn.softmax(model)
         return simb_image, model, bn1
 
     def Load_model(self, cf, sess):
-        self.saver.restore(sess, os.path.join(cf.model_path, cf.model_name)+'.ckpt')
+        self.saver.restore(sess, os.path.join(cf.model_path, cf.model_name))
     
     def Load_weights(self, cf, sess):
         variables_to_restore = [var for var in tf.global_variables()]
@@ -66,7 +89,7 @@ class Model_IO():
     
     def Manual_weight_load(self, cf, sess):
         variables_to_read = [var for var in tf.global_variables() if 'Adam' not in var.name]
-        reader = tf.pywrap_tensorflow.NewCheckpointReader(os.path.join(cf.model_path, cf.model_name)+'.ckpt')
+        reader = tf.pywrap_tensorflow.NewCheckpointReader(os.path.join(cf.model_path, cf.model_name))
         var_to_shape_map = reader.get_variable_to_shape_map()
         for var in var_to_shape_map:
             if cf.model_type == 'DenseNetFCN':
@@ -96,28 +119,28 @@ class Model_IO():
     def Save(self, cf, sess, train_mLoss, mIoU_train, mAcc_train, valid_mLoss=None, 
                 mIoU_valid=None, mAcc_valid=None):
         if cf.save_condition == 'always':
-            self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name) + ".ckpt")
+            self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name))
         elif cf.save_condition == 'train_loss':
             if train_mLoss < self.train_mLoss:
                 self.train_mLoss = train_mLoss
-                self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name) + ".ckpt")
+                self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name))
         elif cf.save_condition == 'train_mIoU':
             if mIoU_train > self.mIoU_train:
                 self.mIoU_train = mIoU_train
-                self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name) + ".ckpt")
+                self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name))
         elif cf.save_condition == 'train_mAcc':
             if mAcc_train > self.mAcc_train:
                 self.mAcc_train = mAcc_train
-                self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name) + ".ckpt")
+                self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name))
         elif cf.save_condition == 'valid_loss':
             if valid_mLoss < self.valid_mLoss:
                 self.valid_mLoss = valid_mLoss
-                self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name) + ".ckpt")
+                self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name))
         elif cf.save_condition == 'valid_mIoU':
             if mIoU_valid > self.mIoU_valid:
                 self.mIoU_valid = mIoU_valid
-                self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name) + ".ckpt")
+                self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name))
         elif cf.save_condition == 'valid_mAcc':
             if mAcc_valid > self.mAcc_valid:
                 self.mAcc_valid = mAcc_valid
-                self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name) + ".ckpt")
+                self.saver.save(sess, os.path.join(cf.exp_folder, cf.model_name))

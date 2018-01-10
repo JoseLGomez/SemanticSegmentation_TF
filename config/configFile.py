@@ -8,9 +8,9 @@ model_dropout               = 0.0             # Dropout rate densenetFCN_Custom 
 model_compression           = 0.0             # Compression rate for DenseNet densenetFCN_Custom only
 pretrained_model			= True			  # True to use a pretrained model or restore experiment
 load_model	                = 'keras'    # Load model from 'tensorflow' or 'keras'
-weight_only					= True
+weight_only					= False
 model_name                  = 'densenetFCN_Custom'
-model_path                  = '/home/jlgomez/Repositories/TensorFlow/tensorflow_model' 			  # None uses experiment path by default if pretrained_model is True
+model_path                  = '/home/jlgomez/Repositories/TensorFlow/tensorflow_model/' # None uses experiment path by default if pretrained_model is True
 
 
 # General parameters

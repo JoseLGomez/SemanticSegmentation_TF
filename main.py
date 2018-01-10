@@ -245,11 +245,13 @@ def restore_session(cf, sess, sb):
             else:
                 saver.Load_model(cf, sess)
         elif cf.load_model == 'keras':
-            print ('Loading weights ...')
+            
             if cf.weight_only:
+                print ('Loading weights from keras model...')
                 saver.Manual_weight_load(cf, sess)
             else:
-                sb.model.simb_image, sb.model.logits, _  = saver.Load_keras_model(cf, sess, sb)
+                print ('Loading model from keras...')
+                sb.model.simb_image, sb.model.logits, sb.model.simb_is_training = saver.Load_keras_model(cf, sess, sb)
     return saver, sb
 
 def main():
