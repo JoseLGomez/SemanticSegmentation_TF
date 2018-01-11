@@ -6,11 +6,11 @@ model_growth                = 12              # Growth rate per block (k) densen
 model_upsampling            = 'deconv'        # upsampling types available: 'upsampling' , 'subpixel', 'deconv'
 model_dropout               = 0.0             # Dropout rate densenetFCN_Custom only
 model_compression           = 0.0             # Compression rate for DenseNet densenetFCN_Custom only
-pretrained_model			= True			  # True to use a pretrained model or restore experiment
-load_model	                = 'keras'    # Load model from 'tensorflow' or 'keras'
+pretrained_model			= False			  # True to use a pretrained model or restore experiment
+load_model	                = 'tensorflow'    # Load model from 'tensorflow' or 'keras'
 weight_only					= False
 model_name                  = 'densenetFCN_Custom'
-model_path                  = '/home/jlgomez/Repositories/TensorFlow/tensorflow_model/' # None uses experiment path by default if pretrained_model is True
+model_path                  = None #'/home/jlgomez/Repositories/TensorFlow/tensorflow_model/' # None uses experiment path by default if pretrained_model is True
 
 
 # General parameters
@@ -21,9 +21,9 @@ test_samples				= 5
 train_batch_size            = 1
 valid_batch_size            = 1
 test_batch_size             = 1
-train                       = False
-validation                  = True
-test                        = True
+train                       = True
+validation                  = False
+test                        = False
 predict_test				= False	# True when you want only predictions without GT on test
 predict_output				= None # None uses the default output in the experiment folder /predictions
 
@@ -52,7 +52,7 @@ shuffle                     = True
 void_class                  = 10
 
 #Training
-epochs                      = 3
+epochs                      = 1
 valid_samples_epoch			= 5
 is_training                 = True
 optimizer                   = 'adam'

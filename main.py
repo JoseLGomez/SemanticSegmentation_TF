@@ -16,7 +16,7 @@ import skimage.io as io
 
 '''def Train(cf,sess, model,train_op,loss_fun,summary_op,summary_writer,
             saver,mean_IoU, update_IoU, running_vars_initializer):'''
-def Train(cf, sess, sb, saver):
+def Train(cf, sess, sb):
     #Path definitions
     train_image_path = os.path.join(cf.train_dataset_path, cf.train_folder_names[0])
     train_gt_path = os.path.join(cf.train_dataset_path, cf.train_folder_names[1])
@@ -125,13 +125,13 @@ def Train(cf, sess, sb, saver):
                                 train_mLoss, mIoU_train, mAcc_train))
         if cf.valid_samples_epoch > 0:
             print("\t Valid_loss: %g, mIoU: %g, mAcc: %g" % (valid_mLoss, mIoU_valid, mAcc_valid))
-            saver.Save(cf, sess, train_mLoss, mIoU_train, mAcc_train, 
+            sb.model.modelIO.Save(cf, sess, train_mLoss, mIoU_train, mAcc_train, 
                                         valid_mLoss, mIoU_valid, mAcc_valid)
             if cf.early_stopping:
                 stop = e_stop.Check(cf.save_condition, train_mLoss, mIoU_train, mAcc_train, 
                                                     valid_mLoss, mIoU_valid, mAcc_valid)
         else:
-            saver.Save(cf, sess, train_mLoss, mIoU_train, mAcc_train)
+            sb.model.modelIO.Save(cf, sess, train_mLoss, mIoU_train, mAcc_train)
             if cf.early_stopping:
                 stop = e_stop.Check(cf.save_condition, train_mLoss, mIoU_train, mAcc_train) 
         epoch += 1
@@ -235,7 +235,6 @@ def Predict(cf, sess, sb):
 def restore_session(cf, sess, sb):
     sess.run(tf.global_variables_initializer())
     sess.run(tf.local_variables_initializer())
-    saver = Model_IO()
     # Restore session
     if cf.pretrained_model:
         if cf.load_model == 'tensorflow':
@@ -286,17 +285,21 @@ def main():
     # training step
     if cf.train:
         #Create symbol builder with all the parameters needed (model, loss, optimizers,...)
-        sb = Symbol_Builder(cf, cf.size_image_train)
-        saver, sb = restore_session(cf, sess, sb)
+        sb = Symbol_Builder(cf, cf.size_image_train, sess)
+        sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
+        #saver, sb = restore_session(cf, sess, sb)
         #merge all the previous summaries
         sb.tensorBoard.set_up() 
         print ('Starting training ...')
-        Train(cf, sess, sb, saver)
+        Train(cf, sess, sb)
     # Validation step
     if cf.validation:
         if not cf.train:
-            sb = Symbol_Builder(cf, cf.size_image_valid)
-            saver, sb = restore_session(cf, sess, sb)
+            sb = Symbol_Builder(cf, cf.size_image_valid, sess)
+            sess.run(tf.global_variables_initializer())
+            sess.run(tf.local_variables_initializer())
+            #saver, sb = restore_session(cf, sess, sb)
             #merge all the previous summaries
             sb.tensorBoard.set_up() 
         print ('Starting validation ...')
@@ -304,8 +307,10 @@ def main():
     # Test step
     if cf.test:
         if not cf.train and not cf.validation:
-            sb = Symbol_Builder(cf, cf.size_image_test)
-            saver, sb = restore_session(cf, sess, sb)
+            sb = Symbol_Builder(cf, cf.size_image_test, sess)
+            sess.run(tf.global_variables_initializer())
+            sess.run(tf.local_variables_initializer())
+            #saver, sb = restore_session(cf, sess, sb)
             #merge all the previous summaries
             sb.tensorBoard.set_up() 
         print ('Starting testing ...')

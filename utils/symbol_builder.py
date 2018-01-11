@@ -10,20 +10,20 @@ from models.model_builder import Model_builder, Model_IO
 
 
 class Symbol_Builder():
-	def __init__(self, cf, size):
+	def __init__(self, cf, size, sess):
 		self.cf = cf
-		self.size = size
-		self.build_model()
+		self.size = self.cf.size_image_train
+		self.build_model(sess)
 		self.trainable_var = tf.trainable_variables()
 		self.__build_loss()
 		self.__build_TB()
 		self.__build_optimizer()
 
-	def build_model(self):
+	def build_model(self, sess):
 		# Prepare model
 	    print ('Generating model ...')
 	    self.model = Model_builder(self.cf, self.size)
-	    self.model.Build()
+	    self.model.Build(sess)
     
 	def __build_loss(self):
 	    # Prepare Loss
