@@ -18,6 +18,13 @@ The following repository contains a functional framework to perform semantic seg
   --exp_folder [path_to_save_experiment] --config_file [path_to_config_file]
   You can define default values to this input arguments in main.py
   
+ ### Requirements
+ - Python 2.7
+ - TensorFlow 1.4.0
+ - Scipy 1.0.0
+ - Numpy 1.13.3
+ - OpenCV 3.0
+  
 ### Actual limitations
 - Only accepts one dataset where RGB images must match the GT images in name, quantity and order. Folder paths for each subset like train, validation and test can be defined in the config file with the respective names of the subfolders path for RGB and GT images.
 - Data loader using numpy
